@@ -1,0 +1,21 @@
+<form novalidate #postForm="ngForm" (submit)="onAddPost(postForm)">
+  <mat-card>
+    <mat-form-field>
+      <input matInput type="text" name="title" placeholder="Post Title" #title="ngModel" ngModel required minlength="3">
+      <mat-error *ngIf="title.invalid && title.errors?.required">
+        Please enter post title.
+      </mat-error>
+      <mat-error *ngIf="title.invalid && title.errors?.minlength">
+        Post title must be 3 digits at least.
+      </mat-error>
+    </mat-form-field>
+    <mat-form-field>
+      <textarea matInput rows="4" name="content" placeholder="Post Content" #content="ngModel" ngModel
+        required></textarea>
+      <mat-error *ngIf="content.invalid">
+        Please enter post title.
+      </mat-error>
+    </mat-form-field>
+    <button type="submit" mat-raised-button color="primary">Save Post</button>
+  </mat-card>
+</form>
