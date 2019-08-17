@@ -4,6 +4,7 @@ import { Subject, Observable } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { map } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
+import { Router } from '@angular/router';
 
 @Injectable({ providedIn: 'root' })
 export class PostService {
@@ -11,7 +12,7 @@ export class PostService {
   private postAddedSource: Subject<Post[]> = new Subject<Post[]>();
   postAdded$: Observable<Post[]>;
 
-  constructor(private http: HttpClient) {
+  constructor(private http: HttpClient, private router: Router) {
     this.postAdded$ = this.postAddedSource.asObservable();
   }
 
@@ -42,6 +43,7 @@ export class PostService {
       .subscribe((createdPost) => {
         this.posts.push(createdPost);
         this.postAddedSource.next([...this.posts]);
+        this.router.navigate(['/']);
       });
   }
 
@@ -51,5 +53,21 @@ export class PostService {
       this.posts = updatedPosts;
       this.postAddedSource.next([...this.posts]);
     });
+  }
+
+  updatePost(id: string, title: string, content: string) {
+    const post: Post = { id, title, content };
+    this.http.put(`${environment.apiUrl}/posts/${id}`, post).subscribe(() => {
+      const updatedPosts = [...this.posts];
+      const oldPostIndex = this.posts.findIndex((p) => p.id === id);
+      updatedPosts[oldPostIndex] = post;
+      this.posts = updatedPosts;
+      this.postAddedSource.next([...this.posts]);
+      this.router.navigate(['/']);
+    });
+  }
+
+  getPost(id: string) {
+    return this.http.get<any>(`${environment.apiUrl}/posts/${id}`);
   }
 }
