@@ -22,7 +22,7 @@ export class PostService {
       .pipe(
         map((responseData) => {
           return responseData.map((post) => {
-            return { id: post._id, title: post.title, content: post.content };
+            return { id: post._id, title: post.title, content: post.content, imagePath: post.imagePath };
           });
         })
       )
@@ -32,12 +32,16 @@ export class PostService {
       });
   }
 
-  addPost(title: string, content: string) {
+  addPost(title: string, content: string, image: File) {
+    const postPayload = new FormData();
+    postPayload.append('title', title);
+    postPayload.append('content', content);
+    postPayload.append('image', image, title);
     this.http
-      .post<any>(`${environment.apiUrl}/posts`, { title, content })
+      .post<any>(`${environment.apiUrl}/posts`, postPayload)
       .pipe(
         map((responseData) => {
-          return { id: responseData._id, title: responseData.title, content: responseData.content };
+          return { id: responseData._id, title: responseData.title, content: responseData.content, imagePath: responseData.imagePath };
         })
       )
       .subscribe((createdPost) => {
@@ -56,7 +60,7 @@ export class PostService {
   }
 
   updatePost(id: string, title: string, content: string) {
-    const post: Post = { id, title, content };
+    const post: Post = { id, title, content, imagePath: null };
     this.http.put(`${environment.apiUrl}/posts/${id}`, post).subscribe(() => {
       const updatedPosts = [...this.posts];
       const oldPostIndex = this.posts.findIndex((p) => p.id === id);

@@ -4,6 +4,7 @@ import { NgForm, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { PostService } from '../post.service';
 import { ActivatedRoute, ParamMap } from '@angular/router';
 import { Post } from '../post.model';
+import { mimeType } from './mime-type.validator';
 
 @Component({
   selector: 'app-post-create',
@@ -25,13 +26,17 @@ export class PostCreateComponent implements OnInit {
     return this.postForm.get('content');
   }
 
-  constructor(private postService: PostService, private formBuilder: FormBuilder, private route: ActivatedRoute) {
-    this.postForm = formBuilder.group({
-      title: [null, [Validators.required, Validators.minLength(3)]],
-      content: [null, Validators.required]
-    });
+  get image() {
+    return this.postForm.get('image');
   }
+  imagePreview: string;
+  constructor(private postService: PostService, private formBuilder: FormBuilder, private route: ActivatedRoute) {}
   ngOnInit(): void {
+    this.postForm = this.formBuilder.group({
+      title: [null, [Validators.required, Validators.minLength(3)]],
+      content: [null, Validators.required],
+      image: [null, [Validators.required], [mimeType]]
+    });
     this.route.paramMap.subscribe((paramMap: ParamMap) => {
       if (paramMap.has('postId')) {
         this.mode = 'edit';
@@ -39,9 +44,8 @@ export class PostCreateComponent implements OnInit {
         this.isLoading = true;
         this.postService.getPost(this.postId).subscribe((postData) => {
           this.isLoading = false;
-          this.post = { id: postData._id, title: postData.title, content: postData.content };
-          this.title.setValue(this.post.title);
-          this.content.setValue(this.post.content);
+          this.post = { id: postData._id, title: postData.title, content: postData.content, imagePath: postData.imagePath };
+          this.postForm.setValue({ title: this.post.title, content: this.post.content });
         });
       } else {
         this.mode = 'create';
@@ -49,16 +53,27 @@ export class PostCreateComponent implements OnInit {
       }
     });
   }
+
+  onImagePicked(event: Event) {
+    const file = (event.target as HTMLInputElement).files[0];
+    this.postForm.patchValue({ image: file });
+    this.image.updateValueAndValidity();
+    const fileReader: FileReader = new FileReader();
+    fileReader.readAsDataURL(file);
+    fileReader.onload = () => {
+      this.imagePreview = fileReader.result as string;
+    };
+  }
   onSavePost() {
     if (this.postForm.invalid) {
       return;
     }
     if (this.mode === 'create') {
       this.isLoading = true;
-      this.postService.addPost(this.postForm.value.title, this.postForm.value.content);
+      this.postService.addPost(this.postForm.value.title, this.postForm.value.content, this.postForm.value.image);
     } else {
       this.postService.updatePost(this.postId, this.postForm.value.title, this.postForm.value.content);
     }
-    // this.postForm.resetForm();
+    this.postForm.reset();
   }
 }
