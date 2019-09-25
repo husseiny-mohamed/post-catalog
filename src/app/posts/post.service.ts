@@ -9,26 +9,30 @@ import { Router } from '@angular/router';
 @Injectable({ providedIn: 'root' })
 export class PostService {
   private posts: Post[] = [];
-  private postAddedSource: Subject<Post[]> = new Subject<Post[]>();
-  postAdded$: Observable<Post[]>;
+  private postAddedSource = new Subject<{ posts: Post[]; count: number }>();
+  postAdded$: Observable<{ posts: Post[]; count: number }>;
 
   constructor(private http: HttpClient, private router: Router) {
     this.postAdded$ = this.postAddedSource.asObservable();
   }
 
-  getPosts() {
+  getPosts(postsPerPage: number, currentPage: number) {
+    const queryParams = `?pagesize=${postsPerPage}&page=${currentPage}`;
     this.http
-      .get<any>(`${environment.apiUrl}/posts`)
+      .get<any>(`${environment.apiUrl}/posts${queryParams}`)
       .pipe(
         map((responseData) => {
-          return responseData.map((post) => {
-            return { id: post._id, title: post.title, content: post.content, imagePath: post.imagePath };
-          });
+          return {
+            posts: responseData.posts.map((post) => {
+              return { id: post._id, title: post.title, content: post.content, imagePath: post.imagePath };
+            }),
+            count: responseData.count
+          };
         })
       )
       .subscribe((transformedPosts) => {
-        this.posts = transformedPosts;
-        this.postAddedSource.next([...this.posts]);
+        this.posts = transformedPosts.posts;
+        this.postAddedSource.next({ posts: [...this.posts], count: transformedPosts.count });
       });
   }
 
@@ -45,8 +49,6 @@ export class PostService {
         })
       )
       .subscribe((createdPost) => {
-        this.posts.push(createdPost);
-        this.postAddedSource.next([...this.posts]);
         this.router.navigate(['/']);
       });
   }
@@ -55,7 +57,7 @@ export class PostService {
     this.http.delete(`${environment.apiUrl}/posts/${postId}`).subscribe(() => {
       const updatedPosts = this.posts.filter((post) => post.id !== postId);
       this.posts = updatedPosts;
-      this.postAddedSource.next([...this.posts]);
+      // this.postAddedSource.next([...this.posts]);
     });
   }
 
@@ -66,7 +68,7 @@ export class PostService {
       const oldPostIndex = this.posts.findIndex((p) => p.id === id);
       updatedPosts[oldPostIndex] = post;
       this.posts = updatedPosts;
-      this.postAddedSource.next([...this.posts]);
+      // this.postAddedSource.next([...this.posts]);
       this.router.navigate(['/']);
     });
   }
